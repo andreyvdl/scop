@@ -16,7 +16,10 @@ var vertex_source []byte
 //go:embed fragment.glsl
 var fragment_source []byte
 
-const FLOAT32_SIZE = int32(unsafe.Sizeof(float32(0)))
+const (
+	FLOAT32_SIZE = int32(unsafe.Sizeof(float32(0)))
+	UINT32_SIZE  = int32(unsafe.Sizeof(uint32(0)))
+)
 
 func StartRendering(wf *wavefront.Wavefront) {
 	_ = wf
@@ -49,33 +52,41 @@ func StartRendering(wf *wavefront.Wavefront) {
 	win.SetFramebufferSizeCallback(FBSCallback)
 
 	vertices := []float32{
-		-0.5, -0.5, 0.0, 1.0,
-		0.5, -0.5, 0.0, 1.0,
+		-0.5, 0.0, 0.0, 1.0,
+		0.5, 0.0, 0.0, 1.0,
 		0.0, 0.5, 0.0, 1.0,
 		0.0, -0.5, 0.0, 1.0,
 	}
 
-	var VAO uint32
-	gl.GenVertexArrays(1, &VAO)
-	gl.BindVertexArray(VAO)
+	indexes := []uint32{
+		0, 1, 2,
+		0, 1, 3,
+	}
 
-	var VBO uint32
-	gl.GenBuffers(1, &VBO)
-	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
+	var vbo uint32
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*int(FLOAT32_SIZE), gl.Ptr(&vertices[0]), gl.STATIC_DRAW)
+
+	var ebo uint32
+	gl.GenBuffers(1, &ebo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indexes)*int(UINT32_SIZE), gl.Ptr(&indexes[0]), gl.STATIC_DRAW)
 
 	initShaders()
 
 	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 4*FLOAT32_SIZE, nil)
 	gl.EnableVertexAttribArray(0)
 
-	gl.BindVertexArray(VAO)
-
 	for !win.ShouldClose() {
 		KeyboardInput(win)
 		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
-		gl.DrawArrays(gl.TRIANGLES, 0, int32(len(vertices)/4))
+		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
 		win.SwapBuffers()
 		glfw.PollEvents()
 	}
