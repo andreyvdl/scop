@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"scop/src/wavefront"
+	"time"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
@@ -21,6 +22,10 @@ const (
 	UINT32_SIZE  = int32(unsafe.Sizeof(uint32(0)))
 )
 
+var duration = 60
+
+var FRAME_TIME = time.Second / time.Duration(duration)
+
 func StartRendering(wf *wavefront.Wavefront) {
 	_ = wf
 
@@ -37,7 +42,7 @@ func StartRendering(wf *wavefront.Wavefront) {
 	defer win.Destroy()
 	win.MakeContextCurrent()
 
-	glfw.SwapInterval(1)
+	// glfw.SwapInterval(1)
 
 	fmt.Println("{INFO|START} Starting opengl")
 	defer fmt.Println("{INFO|START} Stopping opengl")
@@ -82,13 +87,25 @@ func StartRendering(wf *wavefront.Wavefront) {
 	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 4*FLOAT32_SIZE, nil)
 	gl.EnableVertexAttribArray(0)
 
+	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+
+	win.SetKeyCallback(KCallback2)
 	for !win.ShouldClose() {
+		start := time.Now()
+
 		KeyboardInput(win)
 		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
 		win.SwapBuffers()
 		glfw.PollEvents()
+
+		elapsed := time.Since(start)
+		if sleep_duration := FRAME_TIME - elapsed; sleep_duration >= 0 {
+			time.Sleep(sleep_duration)
+		} else {
+			fmt.Println("{WARNING} FPS TOO LOW")
+		}
 	}
 }
 
@@ -158,4 +175,17 @@ func initShaders() {
 		fmt.Println("{INFO|START} Program linked")
 	}
 	gl.UseProgram(program)
+}
+
+func KCallback2(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if key == glfw.KeyE && action == glfw.Press {
+		duration += 10
+	} else if key == glfw.KeyQ && action == glfw.Press {
+		duration -= 10
+	}
+	if duration < 1 {
+		duration = 1
+	}
+	FRAME_TIME = time.Second / time.Duration(duration)
+	fmt.Println("FPS UPDATED: ", FRAME_TIME)
 }
