@@ -6,7 +6,7 @@ import "scop/src"
 // x, y and z are mandatory values
 // w is optinal, by default 1.0
 type Vertex struct {
-	x, y, z, w float32
+	X, Y, Z, W float32
 }
 
 type vertexOption func(*Vertex)
@@ -23,7 +23,7 @@ func NewVertice(x, y, z float32, opts ...vertexOption) *Vertex {
 
 func WithW(w float32) vertexOption {
 	return func(v *Vertex) {
-		v.w = w
+		v.W = w
 	}
 }
 

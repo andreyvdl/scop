@@ -259,3 +259,16 @@ func Tokens2FaceSlices(tokens []string) (vertice int, texture int, normal int) {
 
 	return
 }
+
+func (wf *Wavefront) VerticesToFloat32() []float32 {
+	var vertices []float32
+
+	for _, face := range wf.Faces {
+		for _, index := range face.Vertices_indexes {
+			vertex := wf.Vertices[index-1]
+			vertices = append(vertices, vertex.X, vertex.Y, vertex.Z, vertex.W)
+		}
+	}
+
+	return vertices
+}
