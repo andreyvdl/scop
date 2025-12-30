@@ -5,7 +5,7 @@ import (
 )
 
 type Color struct {
-	r, g, b float32
+	R, G, B float32
 }
 
 func InitColor(r, g, b float32, origin string) Color {

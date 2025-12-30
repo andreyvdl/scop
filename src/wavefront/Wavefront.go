@@ -25,7 +25,7 @@ type Wavefront struct {
 
 func NewWavefront() *Wavefront {
 	return &Wavefront{
-		Mtl: nil,
+		Mtl: mtlib.NewMTL(),
 	}
 }
 
@@ -62,9 +62,6 @@ func (wf *Wavefront) LoadData(filename string) {
 func (wf *Wavefront) matchAndUpdate(tokens []string) {
 	switch strings.ToLower(tokens[0]) {
 	case "mtllib":
-		if wf.Mtl != nil {
-			panic("mtllib already defined")
-		}
 		wf.addMTL(tokens)
 
 	case "v":
@@ -176,8 +173,10 @@ func (wf *Wavefront) selectMaterial(name string) {
 		}
 	}
 
-	if wf.Material == nil {
+	if wf.Material == nil && name != "Default" {
 		panic(fmt.Sprintf("material of name '%s', not found in loaded .mtl", name))
+	} else if name == "Default" {
+		wf.Material = wf.Mtl.DefaultMaterial()
 	}
 }
 

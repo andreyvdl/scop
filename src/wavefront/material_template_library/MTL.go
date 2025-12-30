@@ -158,3 +158,20 @@ func checkDuplicateName(materials []*Material, name string) {
 		}
 	}
 }
+
+func (m *MTL) DefaultMaterial() *Material {
+	m.Materials = append(
+		m.Materials,
+		&Material{
+			Name:                   "Default",
+			Ambient_color:          NewKa(1.0, 1.0, 1.0),
+			Diffuse_color:          NewKd(1.0, 1.0, 1.0),
+			Specular_color:         NewKs(0.0, 0.0, 0.0),
+			Refraction_coefficient: NewNi(1.0),
+			Specular_exponent:      NewNs(0.0),
+			Dissolve_factor:        NewD(1.0),
+			Illumination_model:     NewIllum("0"),
+		},
+	)
+	return m.Materials[len(m.Materials)-1]
+}
