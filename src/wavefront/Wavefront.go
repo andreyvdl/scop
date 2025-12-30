@@ -260,15 +260,37 @@ func Tokens2FaceSlices(tokens []string) (vertice int, texture int, normal int) {
 	return
 }
 
-func (wf *Wavefront) VerticesToFloat32() []float32 {
+func (wf *Wavefront) VerticesToVBO() []float32 {
 	var vertices []float32
 
-	for _, face := range wf.Faces {
-		for _, index := range face.Vertices_indexes {
-			vertex := wf.Vertices[index-1]
-			vertices = append(vertices, vertex.X, vertex.Y, vertex.Z, vertex.W)
+	for i, ver := range wf.Vertices {
+		vertices = append(vertices, ver.X, ver.Y, ver.Z, ver.W)
+		switch i % 3 {
+		case 0:
+			vertices = append(vertices, 1.0, 0.0, 0.0)
+		case 1:
+			vertices = append(vertices, 0.0, 1.0, 0.0)
+		case 2:
+			vertices = append(vertices, 0.0, 0.0, 1.0)
 		}
 	}
 
 	return vertices
+}
+
+func (wf *Wavefront) FacesToEBO() []uint32 {
+	var indices []uint32
+
+	for _, face := range wf.Faces {
+		if len(face.Vertices_indexes) > 3 {
+			indices = append(indices, uint32(face.Vertices_indexes[0]-1), uint32(face.Vertices_indexes[1]-1), uint32(face.Vertices_indexes[2]-1))
+			indices = append(indices, uint32(face.Vertices_indexes[0]-1), uint32(face.Vertices_indexes[2]-1), uint32(face.Vertices_indexes[3]-1))
+		} else {
+			for _, index := range face.Vertices_indexes {
+				indices = append(indices, uint32(index-1))
+			}
+		}
+	}
+
+	return indices
 }

@@ -1,8 +1,8 @@
 package render
 
 import (
-	_ "embed"
 	"fmt"
+	"math"
 	"scop/src/wavefront"
 	"time"
 	"unsafe"
@@ -11,20 +11,11 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-//go:embed vertex.glsl
-var vertex_source []byte
-
-//go:embed fragment.glsl
-var fragment_source []byte
-
 const (
 	FLOAT32_SIZE = int32(unsafe.Sizeof(float32(0)))
 	UINT32_SIZE  = int32(unsafe.Sizeof(uint32(0)))
+	FRAME_TIME   = time.Second / time.Duration(60)
 )
-
-var duration = 60
-
-var FRAME_TIME = time.Second / time.Duration(duration)
 
 func StartRendering(wf *wavefront.Wavefront) {
 	_ = wf
@@ -52,21 +43,16 @@ func StartRendering(wf *wavefront.Wavefront) {
 		panic(err)
 	}
 
+	var nr_attributes int32
+	gl.GetIntegerv(gl.MAX_VERTEX_ATTRIBS, &nr_attributes)
+	fmt.Println("Max number of vertex attributes:", nr_attributes)
+
 	w, h := win.GetSize()
 	gl.Viewport(0, 0, int32(w), int32(h))
 	win.SetFramebufferSizeCallback(FBSCallback)
 
-	vertices := []float32{
-		-0.5, 0.0, 0.0, 1.0,
-		0.5, 0.0, 0.0, 1.0,
-		0.0, 0.5, 0.0, 1.0,
-		0.0, -0.5, 0.0, 1.0,
-	}
-
-	indexes := []uint32{
-		0, 1, 2,
-		0, 1, 3,
-	}
+	vertices := wf.VerticesToVBO()
+	indexes := wf.FacesToEBO()
 
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
@@ -82,21 +68,28 @@ func StartRendering(wf *wavefront.Wavefront) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indexes)*int(UINT32_SIZE), gl.Ptr(&indexes[0]), gl.STATIC_DRAW)
 
-	initShaders()
+	shader := NewShader("src/render/vertex.vs.glsl", "src/render/fragment.fs.glsl")
+	shader.Use()
 
-	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 4*FLOAT32_SIZE, nil)
-	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 7*FLOAT32_SIZE, nil) // vertex
+	gl.EnableVertexAttribArray(0)                                      // need to call this before the color
 
-	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 7*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // color
+	gl.EnableVertexAttribArray(1)
 
-	win.SetKeyCallback(KCallback2)
 	for !win.ShouldClose() {
 		start := time.Now()
 
 		KeyboardInput(win)
+
 		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
+
+		shaderColor(shader)
+
+		gl.BindVertexArray(vao)
 		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
+
 		win.SwapBuffers()
 		glfw.PollEvents()
 
@@ -122,70 +115,10 @@ func createWindow() *glfw.Window {
 	return win
 }
 
-func initShaders() {
-	vtSrc := string(vertex_source)
-	vtSrc += "\x00"
-	vt_uint, free := gl.Strs(vtSrc)
-	defer free()
-	vertex_shader := gl.CreateShader(gl.VERTEX_SHADER)
-	gl.ShaderSource(vertex_shader, 1, vt_uint, nil)
-	gl.CompileShader(vertex_shader)
+func shaderColor(shader *Shader) {
+	timeValue := glfw.GetTime()
+	green := math.Tan(timeValue)/2.0 + 0.5
 
-	status := int32(0)
-	gl.GetShaderiv(vertex_shader, gl.COMPILE_STATUS, &status)
-	if status == 0 {
-		log := make([]byte, 1024)
-		gl.GetShaderInfoLog(vertex_shader, 1024, nil, &log[0])
-		panic(fmt.Errorf("Vertex shader compilation error: %s", string(log)))
-	} else {
-		fmt.Println("{INFO|START} Vertex shader compiled")
-	}
-	defer gl.DeleteShader(vertex_shader)
-
-	fgSrc := string(fragment_source)
-	fgSrc += "\x00"
-	fg_uint, free := gl.Strs(fgSrc)
-	defer free()
-	fragment_shader := gl.CreateShader(gl.FRAGMENT_SHADER)
-	gl.ShaderSource(fragment_shader, 1, fg_uint, nil)
-	gl.CompileShader(fragment_shader)
-
-	status = int32(0)
-	gl.GetShaderiv(fragment_shader, gl.COMPILE_STATUS, &status)
-	if status == 0 {
-		log := make([]byte, 1024)
-		gl.GetShaderInfoLog(fragment_shader, 1024, nil, &log[0])
-		panic(fmt.Errorf("Fragment shader compilation error: %s", string(log)))
-	} else {
-		fmt.Println("{INFO|START} Fragment shader compiled")
-	}
-	defer gl.DeleteShader(fragment_shader)
-
-	program := gl.CreateProgram()
-	gl.AttachShader(program, vertex_shader)
-	gl.AttachShader(program, fragment_shader)
-	gl.LinkProgram(program)
-
-	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
-	if status == 0 {
-		log := make([]byte, 1024)
-		gl.GetProgramInfoLog(program, 1024, nil, &log[0])
-		panic(fmt.Errorf("Program linking error: %s", string(log)))
-	} else {
-		fmt.Println("{INFO|START} Program linked")
-	}
-	gl.UseProgram(program)
-}
-
-func KCallback2(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	if key == glfw.KeyE && action == glfw.Press {
-		duration += 10
-	} else if key == glfw.KeyQ && action == glfw.Press {
-		duration -= 10
-	}
-	if duration < 1 {
-		duration = 1
-	}
-	FRAME_TIME = time.Second / time.Duration(duration)
-	fmt.Println("FPS UPDATED: ", FRAME_TIME)
+	shader.Use()
+	shader.Set4Float("ourColor", float32(math.Pow(green, 2)), float32(green), float32(green)/2, 1.0)
 }
