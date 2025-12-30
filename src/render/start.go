@@ -2,7 +2,12 @@ package render
 
 import (
 	"fmt"
+	"image"
+	"image/draw"
+	_ "image/jpeg"
+	_ "image/png"
 	"math"
+	"os"
 	"scop/src/wavefront"
 	"time"
 	"unsafe"
@@ -71,11 +76,41 @@ func StartRendering(wf *wavefront.Wavefront) {
 	shader := NewShader("src/render/vertex.vs.glsl", "src/render/fragment.fs.glsl")
 	shader.Use()
 
-	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 7*FLOAT32_SIZE, nil) // vertex
+	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 9*FLOAT32_SIZE, nil) // vertex
 	gl.EnableVertexAttribArray(0)                                      // need to call this before the color
 
-	gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 7*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // color
+	gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 9*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // color
 	gl.EnableVertexAttribArray(1)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+
+	gs, err := os.Open("resources/goldo_shippu.jpg")
+	// gs, err := os.Open("resources/sombra.png")
+	if err != nil {
+		panic(err)
+	}
+	defer gs.Close()
+
+	img, _, err := image.Decode(gs)
+	if err != nil {
+		panic(err)
+	}
+
+	rgba := image.NewRGBA(img.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), img, img.Bounds().Min, draw.Src)
+
+	var tex uint32
+	gl.GenTextures(1, &tex)
+	gl.BindTexture(gl.TEXTURE_2D, tex)
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(rgba.Rect.Dx()), int32(rgba.Rect.Dy()), 0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&rgba.Pix[0]))
+	gl.GenerateMipmap(gl.TEXTURE_2D)
+
+	gl.VertexAttribPointerWithOffset(2, 2, gl.FLOAT, false, 9*FLOAT32_SIZE, uintptr(7*FLOAT32_SIZE)) // texture coordinates
+	gl.EnableVertexAttribArray(2)
 
 	for !win.ShouldClose() {
 		start := time.Now()
@@ -87,6 +122,7 @@ func StartRendering(wf *wavefront.Wavefront) {
 
 		shaderColor(shader)
 
+		gl.BindTexture(gl.TEXTURE_2D, tex)
 		gl.BindVertexArray(vao)
 		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
 

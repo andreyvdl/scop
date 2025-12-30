@@ -264,13 +264,15 @@ func (wf *Wavefront) VerticesToVBO() []float32 {
 
 	for i, ver := range wf.Vertices {
 		vertices = append(vertices, ver.X, ver.Y, ver.Z, ver.W)
-		switch i % 3 {
+		switch i % 4 {
 		case 0:
-			vertices = append(vertices, 1.0, 0.0, 0.0)
+			vertices = append(vertices, 1.0, 0.0, 0.0, 0.0, 0.0)
 		case 1:
-			vertices = append(vertices, 0.0, 1.0, 0.0)
+			vertices = append(vertices, 0.0, 1.0, 0.0, 1.0, 0.0)
 		case 2:
-			vertices = append(vertices, 0.0, 0.0, 1.0)
+			vertices = append(vertices, 0.0, 0.0, 1.0, 0.0, 1.0)
+		case 3:
+			vertices = append(vertices, 1.0, 1.0, 1.0, 1.0, 1.0)
 		}
 	}
 
