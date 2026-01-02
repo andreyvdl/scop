@@ -11,13 +11,11 @@
 - https://paulbourke.net/dataformats/mtl/
 - https://paulbourke.net/dataformats/obj/
 
-## GLFW
+## OPENGL
 
 - https://github.com/go-gl/glfw
-
-## GL
-
 - https://github.com/go-gl/gl
+- https://github.com/go-gl/mathgl => use is forbidden
 
 ## OPENGL GUIDE
 
