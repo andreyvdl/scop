@@ -5,6 +5,11 @@ import (
 	. "scop/src/render/vectors"
 )
 
-func Scale(v Vec4, s Mat4) Vec4 {
-	return s.Mul4x1(v)
+func Scale(s Vec3) Mat4 {
+	id := Identity4()
+
+	id[0] = s[0]
+	id[5] = s[1]
+	id[10] = s[2]
+	return id
 }

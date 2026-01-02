@@ -6,32 +6,22 @@ import (
 	. "scop/src/render/vectors"
 )
 
-func RotateX(theta float64, v Vec4) Vec4 {
-	r := Identity4()
+func Rotate(theta float64, axis Vec3) Mat4 {
+	id := Identity4()
+	cos := float32(math.Cos(theta))
+	sin := float32(math.Sin(theta))
 
-	r[5] = float32(math.Cos(theta))
-	r[6] = float32(-math.Sin(theta))
-	r[9] = float32(math.Sin(theta))
-	r[10] = float32(math.Cos(theta))
-	return r.Mul4x1(v)
-}
+	id[0] = cos + axis[0]*axis[0]*(1-cos)
+	id[1] = axis[0]*axis[1]*(1-cos) - axis[2]*sin
+	id[2] = axis[0]*axis[2]*(1-cos) + axis[1]*sin
 
-func RotateY(theta float64, v Vec4) Vec4 {
-	r := Identity4()
+	id[4] = axis[1]*axis[0]*(1-cos) + axis[2]*sin
+	id[5] = cos + axis[1]*axis[1]*(1-cos)
+	id[6] = axis[1]*axis[2]*(1-cos) - axis[0]*sin
 
-	r[0] = float32(math.Cos(theta))
-	r[2] = float32(math.Sin(theta))
-	r[8] = float32(-math.Sin(theta))
-	r[10] = float32(math.Cos(theta))
-	return r.Mul4x1(v)
-}
+	id[8] = axis[2]*axis[0]*(1-cos) - axis[1]*sin
+	id[9] = axis[2]*axis[1]*(1-cos) + axis[0]*sin
+	id[10] = cos + axis[2]*axis[2]*(1-cos)
 
-func RotateZ(theta float64, v Vec4) Vec4 {
-	r := Identity4()
-
-	r[0] = float32(math.Cos(theta))
-	r[1] = float32(-math.Sin(theta))
-	r[4] = float32(math.Sin(theta))
-	r[5] = float32(math.Cos(theta))
-	return r.Mul4x1(v)
+	return id
 }
