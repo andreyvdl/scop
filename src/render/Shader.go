@@ -3,6 +3,7 @@ package render
 import (
 	"fmt"
 	"os"
+	. "scop/src/render/matrices"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
 )
@@ -87,4 +88,8 @@ func (s *Shader) SetFloat(name string, value float32) {
 
 func (s *Shader) Set4Float(name string, v0, v1, v2, v3 float32) {
 	gl.Uniform4f(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), v0, v1, v2, v3)
+}
+
+func (s *Shader) SetMatrix4f(name string, value Mat4) {
+	gl.UniformMatrix4fv(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), 1, false, &value[0])
 }
