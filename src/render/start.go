@@ -25,6 +25,10 @@ const (
 	FRAME_TIME   = time.Second / time.Duration(60)
 )
 
+var (
+	prev_time = time.Now()
+)
+
 func StartRendering(wf *wavefront.Wavefront) {
 	_ = wf
 
@@ -82,10 +86,10 @@ func StartRendering(wf *wavefront.Wavefront) {
 	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 6*FLOAT32_SIZE, nil) // vertex
 	gl.EnableVertexAttribArray(0)                                      // need to call this before the color
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
 	img1 := loadTexture("resources/goldo_shippu.jpg")
 	img2 := loadTexture("resources/sombra.png")
@@ -112,13 +116,22 @@ func StartRendering(wf *wavefront.Wavefront) {
 	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, 6*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // texture coordinates
 	gl.EnableVertexAttribArray(1)
 
+	param := Parameters{scale: 1}
+
 	for !win.ShouldClose() {
 		start := time.Now()
-		m := matrices.Identity4()
-		m = transformations.Translate(m, vectors.Vec3{0.5, -0.5, 0})
-		m = transformations.Rotate(m, glfw.GetTime(), vectors.Vec3{0, 0, 1})
+		delta := start.Sub(prev_time).Seconds()
+		prev_time = start
+		KeyboardInput(win, &param, delta)
 
-		KeyboardInput(win)
+		m := matrices.Identity4()
+		m = transformations.Combine(
+			transformations.Scale(m, vectors.Vec3{param.scale, param.scale, param.scale}),
+			transformations.Rotate(m, Deg2Rad(param.rot[0]), vectors.Vec3{1, 0.001, 0.001}),
+			transformations.Rotate(m, Deg2Rad(param.rot[1]), vectors.Vec3{0.001, 1, 0.001}),
+			transformations.Rotate(m, Deg2Rad(param.rot[2]), vectors.Vec3{0.001, 0.001, 1}),
+		)
+
 		shader.SetMatrix4f("transform", m)
 
 		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
@@ -133,13 +146,6 @@ func StartRendering(wf *wavefront.Wavefront) {
 
 		win.SwapBuffers()
 		glfw.PollEvents()
-
-		elapsed := time.Since(start)
-		if sleep_duration := FRAME_TIME - elapsed; sleep_duration >= 0 {
-			time.Sleep(sleep_duration)
-		} else {
-			fmt.Println("{WARNING} FPS TOO LOW")
-		}
 	}
 }
 

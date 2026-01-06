@@ -11,6 +11,13 @@ go build
 go run scop path/to/file.obj
 ```
 
+# Controls
+
+- Up Down: Rotate object in the Y axies
+- Left Right: Rotate object in the Z axies
+- Z X: Rotate object in the X axies
+- 1 3: Decrease/Increase scale
+
 ---
 
 Colossians 3:17
