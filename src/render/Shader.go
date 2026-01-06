@@ -92,5 +92,5 @@ func (s *Shader) Set4Float(name string, v0, v1, v2, v3 float32) {
 
 func (s *Shader) SetMatrix4f(name string, value Mat4) {
 	mat := value.ToFlat()
-	gl.UniformMatrix4fv(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), 1, false, &mat[0])
+	gl.UniformMatrix4fv(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), 1, true, &mat[0])
 }

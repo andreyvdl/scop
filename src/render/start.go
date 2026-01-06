@@ -115,10 +115,8 @@ func StartRendering(wf *wavefront.Wavefront) {
 	for !win.ShouldClose() {
 		start := time.Now()
 		m := matrices.Identity4()
-		m = transformations.Combine(m,
-			transformations.Rotate(m, Deg2Rad(90), vectors.Vec3{0, 0, 1}),
-			transformations.Scale(m, vectors.Vec3{0.5, 0.5, 0.5}),
-		)
+		m = transformations.Translate(m, vectors.Vec3{0.5, -0.5, 0})
+		m = transformations.Rotate(m, glfw.GetTime(), vectors.Vec3{0, 0, 1})
 
 		KeyboardInput(win)
 		shader.SetMatrix4f("transform", m)
