@@ -6,22 +6,25 @@ import (
 	. "scop/src/render/vectors"
 )
 
-func Rotate(theta float64, axis Vec3) Mat4 {
+/*
+Theta is expected to be in radians
+*/
+func Rotate(trans Mat4, theta float64, axis Vec3) Mat4 {
 	id := Identity4()
-	cos := float32(math.Cos(theta))
-	sin := float32(math.Sin(theta))
+	sin, cos := math.Sincos(theta)
+	sin32, cos32 := float32(sin), float32(cos)
 
-	id[0] = cos + axis[0]*axis[0]*(1-cos)
-	id[1] = axis[0]*axis[1]*(1-cos) - axis[2]*sin
-	id[2] = axis[0]*axis[2]*(1-cos) + axis[1]*sin
+	id[0][0] = cos32 * (axis[0] * axis[0]) * (1 - cos32)
+	id[1][0] = axis[1]*axis[0]*(1-cos32) + axis[2]*sin32
+	id[2][0] = axis[2]*axis[0]*(1-cos32) - axis[1]*sin32
 
-	id[4] = axis[1]*axis[0]*(1-cos) + axis[2]*sin
-	id[5] = cos + axis[1]*axis[1]*(1-cos)
-	id[6] = axis[1]*axis[2]*(1-cos) - axis[0]*sin
+	id[0][1] = axis[0]*axis[1]*(1-cos32) - axis[2]*sin32
+	id[1][1] = cos32 + (axis[1]*axis[1])*(1-cos32)
+	id[2][1] = axis[2]*axis[1]*(1-cos32) + axis[0]*sin32
 
-	id[8] = axis[2]*axis[0]*(1-cos) - axis[1]*sin
-	id[9] = axis[2]*axis[1]*(1-cos) + axis[0]*sin
-	id[10] = cos + axis[2]*axis[2]*(1-cos)
+	id[0][2] = axis[0]*axis[2]*(1-cos32) + axis[1]*sin32
+	id[1][2] = axis[1]*axis[2]*(1-cos32) - axis[0]*sin32
+	id[2][2] = cos32 + (axis[2]*axis[2])*(1-cos32)
 
-	return id
+	return trans.Mul(id)
 }

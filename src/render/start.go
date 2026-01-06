@@ -9,6 +9,8 @@ import (
 	"math"
 	"os"
 	"scop/src/render/matrices"
+	"scop/src/render/transformations"
+	"scop/src/render/vectors"
 	"scop/src/wavefront"
 	"time"
 	"unsafe"
@@ -77,29 +79,26 @@ func StartRendering(wf *wavefront.Wavefront) {
 	shader := NewShader("src/render/vertex.vs.glsl", "src/render/fragment.fs.glsl")
 	shader.Use()
 
-	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 9*FLOAT32_SIZE, nil) // vertex
+	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 6*FLOAT32_SIZE, nil) // vertex
 	gl.EnableVertexAttribArray(0)                                      // need to call this before the color
-
-	gl.VertexAttribPointerWithOffset(1, 3, gl.FLOAT, false, 9*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // color
-	gl.EnableVertexAttribArray(1)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	// img1 := loadTexture("resources/goldo_shippu.jpg")
+	img1 := loadTexture("resources/goldo_shippu.jpg")
 	img2 := loadTexture("resources/sombra.png")
-	// flipVertically(img1)
+	flipVertically(img1)
 	flipVertically(img2)
 
-	// var tex1 uint32
+	var tex1 uint32
 	var tex2 uint32
-	// gl.GenTextures(1, &tex1)
-	// gl.ActiveTexture(gl.TEXTURE0)
-	// gl.BindTexture(gl.TEXTURE_2D, tex1)
-	// gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(img1.Rect.Dx()), int32(img1.Rect.Dy()), 0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&img1.Pix[0]))
-	// gl.GenerateMipmap(gl.TEXTURE_2D)
+	gl.GenTextures(1, &tex1)
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, tex1)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(img1.Rect.Dx()), int32(img1.Rect.Dy()), 0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&img1.Pix[0]))
+	gl.GenerateMipmap(gl.TEXTURE_2D)
 
 	gl.GenTextures(1, &tex2)
 	gl.ActiveTexture(gl.TEXTURE1)
@@ -107,29 +106,29 @@ func StartRendering(wf *wavefront.Wavefront) {
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(img2.Rect.Dx()), int32(img2.Rect.Dy()), 0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&img2.Pix[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 
-	// shader.SetInt("tex1", 0)
+	shader.SetInt("tex1", 0)
 	shader.SetInt("tex2", 1)
 
-	gl.VertexAttribPointerWithOffset(2, 2, gl.FLOAT, false, 9*FLOAT32_SIZE, uintptr(7*FLOAT32_SIZE)) // texture coordinates
-	gl.EnableVertexAttribArray(2)
-
-	degree := 0.0
-	scale := float32(1.0)
+	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, 6*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // texture coordinates
+	gl.EnableVertexAttribArray(1)
 
 	for !win.ShouldClose() {
 		start := time.Now()
 		m := matrices.Identity4()
+		m = transformations.Combine(m,
+			transformations.Rotate(m, Deg2Rad(90), vectors.Vec3{0, 0, 1}),
+			transformations.Scale(m, vectors.Vec3{0.5, 0.5, 0.5}),
+		)
 
-		KeyboardInput(win, &m, &degree, &scale)
+		KeyboardInput(win)
 		shader.SetMatrix4f("transform", m)
 
 		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
 		shaderColor(shader)
-		shader.SetMatrix4f("transform", m)
 
-		// gl.BindTexture(gl.TEXTURE_2D, tex1)
+		gl.BindTexture(gl.TEXTURE_2D, tex1)
 		gl.BindTexture(gl.TEXTURE_2D, tex2)
 		gl.BindVertexArray(vao)
 		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)

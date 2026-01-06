@@ -5,11 +5,12 @@ import (
 	. "scop/src/render/vectors"
 )
 
-func Translate(t Vec3) Mat4 {
+func Translate(trans Mat4, t Vec3) Mat4 {
 	id := Identity4()
 
-	id[3] = t[0]
-	id[7] = t[1]
-	id[11] = t[2]
-	return id
+	id[0][3] = t[0]
+	id[1][3] = t[1]
+	id[2][3] = t[2]
+
+	return trans.Mul(id)
 }
