@@ -9,6 +9,12 @@ func KeyboardInput(win *glfw.Window, param *Parameters, delta float64) {
 		win.SetShouldClose(true)
 	}
 
+	if win.GetKey(glfw.KeyV) == glfw.Press && win.GetKey(glfw.KeyLeftShift) == glfw.Press {
+		glfw.SwapInterval(0)
+	} else if win.GetKey(glfw.KeyV) == glfw.Press {
+		glfw.SwapInterval(1)
+	}
+
 	if win.GetKey(glfw.KeyUp) == glfw.Press {
 		param.rot[0] += 100 * delta
 		if param.rot[0] >= 360 {

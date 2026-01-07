@@ -17,6 +17,7 @@ go run scop path/to/file.obj
 - Left Right: Rotate object in the Z axies
 - Z X: Rotate object in the X axies
 - 1 3: Decrease/Increase scale
+- Shift+V V: Vsync OFF/ON
 
 ---
 

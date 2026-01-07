@@ -30,8 +30,6 @@ var (
 )
 
 func StartRendering(wf *wavefront.Wavefront) {
-	_ = wf
-
 	fmt.Println("{INFO|START} Starting window render")
 	defer fmt.Println("{INFO|START} Stopping window render")
 
@@ -45,7 +43,7 @@ func StartRendering(wf *wavefront.Wavefront) {
 	defer win.Destroy()
 	win.MakeContextCurrent()
 
-	// glfw.SwapInterval(1)
+	glfw.SwapInterval(1)
 
 	fmt.Println("{INFO|START} Starting opengl")
 	defer fmt.Println("{INFO|START} Stopping opengl")
