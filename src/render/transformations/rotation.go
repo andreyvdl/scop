@@ -27,5 +27,5 @@ func Rotate(trans Mat4, theta float64, axis Vec3) Mat4 {
 	id[1][2] = axis[1]*axis[2]*cos_m_1 - axis[0]*sin32
 	id[2][2] = cos32 + (axis[2]*axis[2])*cos_m_1
 
-	return trans.Mul(id)
+	return id.Mul(trans)
 }

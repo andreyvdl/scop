@@ -12,5 +12,5 @@ func Translate(trans Mat4, t Vec3) Mat4 {
 	id[1][3] = t[1]
 	id[2][3] = t[2]
 
-	return trans.Mul(id)
+	return id.Mul(trans)
 }

@@ -12,5 +12,5 @@ func Scale(trans Mat4, s Vec3) Mat4 {
 	id[1][1] = s[1]
 	id[2][2] = s[2]
 
-	return trans.Mul(id)
+	return id.Mul(trans)
 }
