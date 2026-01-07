@@ -120,17 +120,17 @@ func StartRendering(wf *wavefront.Wavefront) {
 		start := time.Now()
 		delta := start.Sub(prev_time).Seconds()
 		prev_time = start
+
 		KeyboardInput(win, &param, delta)
+		x, y := win.GetSize()
 
-		m := matrices.Identity4()
-		m = transformations.Combine(
-			transformations.Scale(m, vectors.Vec3{param.scale, param.scale, param.scale}),
-			transformations.Rotate(m, Deg2Rad(param.rot[0]), vectors.Vec3{1, 0.001, 0.001}),
-			transformations.Rotate(m, Deg2Rad(param.rot[1]), vectors.Vec3{0.001, 1, 0.001}),
-			transformations.Rotate(m, Deg2Rad(param.rot[2]), vectors.Vec3{0.001, 0.001, 1}),
-		)
+		model := transformations.Rotate(matrices.Identity4(), Deg2Rad(-55), vectors.Vec3{1, 0, 0})
+		view := transformations.Translate(matrices.Identity4(), vectors.Vec3{0, 0, -3})
+		proj := matrices.Perspective(float32(Deg2Rad(45)), float32(x)/float32(y), 0.1, 100.0)
 
-		shader.SetMatrix4f("transform", m)
+		shader.SetMatrix4f("model", model)
+		shader.SetMatrix4f("view", view)
+		shader.SetMatrix4f("proj", proj)
 
 		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
