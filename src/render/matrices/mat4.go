@@ -1,6 +1,9 @@
 package matrices
 
-import . "scop/src/render/vectors"
+import (
+	"math"
+	. "scop/src/render/vectors"
+)
 
 type Mat4 [4][4]float32
 type Mat4x2 [4][2]float32
@@ -298,4 +301,31 @@ func (m Mat4) ToMat3() Mat3 {
 		{m[1][0], m[1][1], m[1][2]},
 		{m[2][0], m[2][1], m[2][2]},
 	}
+}
+
+func Ortho(left, right, bottom, top, z_near, z_far float32) Mat4 {
+	id := Identity4()
+
+	id[0][0] = 2 / (right - left)
+	id[1][1] = 2 / (top - bottom)
+	id[2][2] = -1 / (z_far - z_near)
+
+	id[0][3] = -(right + left) / (right - left)
+	id[1][3] = -(top + bottom) / (top - bottom)
+	id[2][3] = -z_near / (z_far - z_near)
+
+	return id
+}
+
+func Perspective(fov_y, aspect, z_near, z_far float32) Mat4 {
+	m := Mat4{}
+	f := 1 / float32(math.Tan(float64(fov_y)/2))
+
+	m[0][0] = f / aspect
+	m[1][1] = f
+	m[2][2] = -(z_far + z_near) / (z_far - z_near)
+	m[2][3] = -1
+	m[3][2] = -(2 * z_far * z_near) / (z_far - z_near)
+
+	return m
 }
