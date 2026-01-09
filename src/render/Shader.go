@@ -2,10 +2,12 @@ package render
 
 import (
 	"fmt"
+	"math"
 	"os"
 	. "scop/src/render/matrices"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 type Shader struct {
@@ -93,4 +95,12 @@ func (s *Shader) Set4Float(name string, v0, v1, v2, v3 float32) {
 func (s *Shader) SetMatrix4f(name string, value Mat4) {
 	mat := value.ToFlat()
 	gl.UniformMatrix4fv(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), 1, true, &mat[0])
+}
+
+func ShaderColor(shader *Shader) {
+	timeValue := glfw.GetTime()
+	green := math.Tan(timeValue)/2.0 + 0.5
+
+	shader.Use()
+	shader.Set4Float("ourColor", float32(math.Pow(green, 2)), float32(green), float32(green)/2, 1.0)
 }

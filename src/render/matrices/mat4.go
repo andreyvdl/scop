@@ -329,3 +329,31 @@ func Perspective(fov_y, aspect, z_near, z_far float32) Mat4 {
 
 	return m
 }
+
+func LookAt(position, target, upward Vec3) Mat4 {
+	direction := position.Sub(target).Normalize()
+	right := upward.CrossProduct(direction).Normalize()
+	up := direction.CrossProduct(right)
+
+	id1 := Identity4()
+
+	id1[0][0] = right[0]
+	id1[0][1] = right[1]
+	id1[0][2] = right[2]
+
+	id1[1][0] = up[0]
+	id1[1][1] = up[1]
+	id1[1][2] = up[2]
+
+	id1[2][0] = direction[0]
+	id1[2][1] = direction[1]
+	id1[2][2] = direction[2]
+
+	id2 := Identity4()
+
+	id2[0][3] = -position[0]
+	id2[1][3] = -position[1]
+	id2[2][3] = -position[2]
+
+	return id1.Mul(id2)
+}

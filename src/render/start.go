@@ -2,17 +2,13 @@ package render
 
 import (
 	"fmt"
-	"image"
-	"image/draw"
 	_ "image/jpeg"
 	_ "image/png"
 	"math"
-	"os"
-	"scop/src/render/matrices"
-	"scop/src/render/transformations"
-	"scop/src/render/vectors"
+	. "scop/src/render/matrices"
+	. "scop/src/render/transformations"
+	. "scop/src/render/vectors"
 	"scop/src/wavefront"
-	"time"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
@@ -22,11 +18,13 @@ import (
 const (
 	FLOAT32_SIZE = int32(unsafe.Sizeof(float32(0)))
 	UINT32_SIZE  = int32(unsafe.Sizeof(uint32(0)))
-	FRAME_TIME   = time.Second / time.Duration(60)
 )
 
 var (
-	prev_time = time.Now()
+	prev_time       = 0.0
+	world_up        = Vec3{0, 1, 0}
+	world_center    = Vec3{0, 0, 0}
+	camera_location = Vec3{0, 0, 3}
 )
 
 func StartRendering(wf *wavefront.Wavefront) {
@@ -53,147 +51,106 @@ func StartRendering(wf *wavefront.Wavefront) {
 		panic(err)
 	}
 
-	var nr_attributes int32
-	gl.GetIntegerv(gl.MAX_VERTEX_ATTRIBS, &nr_attributes)
-	fmt.Println("Max number of vertex attributes:", nr_attributes)
-
-	w, h := win.GetSize()
-	gl.Viewport(0, 0, int32(w), int32(h))
+	setViewport(win.GetSize())
 	win.SetFramebufferSizeCallback(FBSCallback)
 
-	vertices := wf.VerticesToVBO()
-	indexes := wf.FacesToEBO()
+	vao := createVAO(1)
+	defer gl.DeleteVertexArrays(1, &vao)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
+	vbo := createVBO(1, [][]float32{wf.VerticesToVBO()})
+	defer gl.DeleteBuffers(1, &vbo)
 
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*int(FLOAT32_SIZE), gl.Ptr(&vertices[0]), gl.STATIC_DRAW)
-
-	var ebo uint32
-	gl.GenBuffers(1, &ebo)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indexes)*int(UINT32_SIZE), gl.Ptr(&indexes[0]), gl.STATIC_DRAW)
+	// ebo := createEBO(1, [][]uint32{wf.FacesToEBO()})
+	// defer gl.DeleteBuffers(1, &ebo)
 
 	shader := NewShader("src/render/vertex.vs.glsl", "src/render/fragment.fs.glsl")
 	shader.Use()
 
-	gl.VertexAttribPointer(0, 4, gl.FLOAT, false, 6*FLOAT32_SIZE, nil) // vertex
-	gl.EnableVertexAttribArray(0)                                      // need to call this before the color
-
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	setVertexAttibute(0, 4, 6*FLOAT32_SIZE, false, nil) // vertices
+	setTextureParameters()
 
 	img1 := loadTexture("resources/goldo_shippu.jpg")
 	img2 := loadTexture("resources/sombra.png")
 	flipVertically(img1)
 	flipVertically(img2)
 
-	var tex1 uint32
-	var tex2 uint32
-	gl.GenTextures(1, &tex1)
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, tex1)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(img1.Rect.Dx()), int32(img1.Rect.Dy()), 0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&img1.Pix[0]))
-	gl.GenerateMipmap(gl.TEXTURE_2D)
-
-	gl.GenTextures(1, &tex2)
-	gl.ActiveTexture(gl.TEXTURE1)
-	gl.BindTexture(gl.TEXTURE_2D, tex2)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(img2.Rect.Dx()), int32(img2.Rect.Dy()), 0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&img2.Pix[0]))
-	gl.GenerateMipmap(gl.TEXTURE_2D)
-
+	createTexture(1, img1, gl.TEXTURE0)
+	createTexture(1, img2, gl.TEXTURE1)
 	shader.SetInt("tex1", 0)
 	shader.SetInt("tex2", 1)
 
-	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, 6*FLOAT32_SIZE, uintptr(4*FLOAT32_SIZE)) // texture coordinates
-	gl.EnableVertexAttribArray(1)
+	setVertexAttributeOffset(1, 2, 6*FLOAT32_SIZE, false, uintptr(4*FLOAT32_SIZE)) // texture coordinates
 
-	param := Parameters{scale: 1}
+	gl.Enable(gl.DEPTH_TEST)
+
+	param := Parameters{
+		yaw:   0,
+		pitch: 0,
+		roll:  0,
+		zoom:  100,
+	}
+
+	cube_pos := []Vec3{
+		{0, 0, 0},
+		{2, 5, -15},
+		{-1.5, -2.2, -2.5},
+		{-3.8, -2, -12.3},
+		{2.4, -0.4, -3.5},
+		{-1.7, 3, -7.5},
+		{1.3, -2, -2.5},
+		{1.5, 2, -2.5},
+		{1.5, 0.2, -1.5},
+		{-1.3, 1, -1.5},
+	}
 
 	for !win.ShouldClose() {
-		start := time.Now()
-		delta := start.Sub(prev_time).Seconds()
+		start := glfw.GetTime()
+		delta := start - prev_time
 		prev_time = start
 
 		KeyboardInput(win, &param, delta)
+
+		gl.ClearColor(1.0, 1.0, 1.0, 1.0)
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
 		x, y := win.GetSize()
+		view := LookAt(camera_location, world_center, world_up)
+		proj := Perspective(float32(Deg2Rad(float64(param.zoom))), float32(x)/float32(y), 0.1, 100.0)
 
-		model := transformations.Rotate(matrices.Identity4(), Deg2Rad(-55), vectors.Vec3{1, 0, 0})
-		view := transformations.Translate(matrices.Identity4(), vectors.Vec3{0, 0, -3})
-		proj := matrices.Perspective(float32(Deg2Rad(45)), float32(x)/float32(y), 0.1, 100.0)
-
-		shader.SetMatrix4f("model", model)
-		shader.SetMatrix4f("view", view)
 		shader.SetMatrix4f("proj", proj)
+		shader.SetMatrix4f("view", view)
 
-		gl.ClearColor(0.0, 0.0, 0.314, 1.0)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
+		pitch_sin, pitch_cos := math.Sincos(float64(param.pitch))
+		yaw_sin, yaw_cos := math.Sincos(float64(param.yaw))
+		front := Vec3{
+			float32(pitch_cos * yaw_sin),
+			float32(pitch_sin),
+			float32(pitch_cos * yaw_cos),
+		}.Normalize()
 
-		shaderColor(shader)
+		for i := range 10 {
+			right := world_up.CrossProduct(front).Normalize()
+			up := front.CrossProduct(right).Normalize()
 
-		gl.BindTexture(gl.TEXTURE_2D, tex1)
-		gl.BindTexture(gl.TEXTURE_2D, tex2)
-		gl.BindVertexArray(vao)
-		gl.DrawElements(gl.TRIANGLES, int32(len(indexes)), gl.UNSIGNED_INT, nil)
+			model := Mat4{
+				right.ToVec4(0),
+				up.ToVec4(0),
+				front.ToVec4(0),
+				{0, 0, 0, 1},
+			}
+
+			model = Combine(
+				model,
+				Rotate(Identity4(), Deg2Rad(20*float64(i)), Vec3{1, 0.3, 0.5}),
+				Translate(Identity4(), cube_pos[i]),
+				Rotate(Identity4(), Deg2Rad(float64(param.roll)*40), Vec3{0, 0, 1}),
+			)
+
+			shader.SetMatrix4f("model", model)
+			gl.DrawArrays(gl.TRIANGLES, 0, 36)
+		}
 
 		win.SwapBuffers()
 		glfw.PollEvents()
 	}
-}
-
-func createWindow() *glfw.Window {
-	video := glfw.GetPrimaryMonitor().GetVideoMode()
-	width := video.Width / 2
-	height := video.Height / 2
-
-	win, err := glfw.CreateWindow(width, height, "scop", nil, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	return win
-}
-
-func shaderColor(shader *Shader) {
-	timeValue := glfw.GetTime()
-	green := math.Tan(timeValue)/2.0 + 0.5
-
-	shader.Use()
-	shader.Set4Float("ourColor", float32(math.Pow(green, 2)), float32(green), float32(green)/2, 1.0)
-}
-
-func loadTexture(filepath string) *image.RGBA {
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	img, _, err := image.Decode(f)
-	if err != nil {
-		panic(err)
-	}
-
-	rgba := image.NewRGBA(img.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), img, img.Bounds().Min, draw.Src)
-
-	return rgba
-}
-
-func flipVertically(img *image.RGBA) {
-	row := make([]byte, img.Bounds().Dx()*4)
-	for y := 0; y < img.Bounds().Dy()/2; y++ {
-		top := y * img.Stride
-		bottom := (img.Bounds().Dy() - 1 - y) * img.Stride
-		copy(row, img.Pix[top:top+img.Stride])
-		copy(img.Pix[top:top+img.Stride], img.Pix[bottom:bottom+img.Stride])
-		copy(img.Pix[bottom:bottom+img.Stride], row)
-	}
-
 }

@@ -63,3 +63,11 @@ func (v Vec2) ToVec3(z float32) Vec3 {
 func (v Vec2) ToVec4(z, w float32) Vec4 {
 	return Vec4{v[0], v[1], z, w}
 }
+
+func (v Vec2) Normalize() Vec2 {
+	mag := v.Magnitude()
+	if mag == 0 {
+		return Vec2{0, 0}
+	}
+	return v.DivScalar(mag)
+}
