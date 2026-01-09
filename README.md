@@ -13,10 +13,10 @@ go run scop path/to/file.obj
 
 # Controls
 
-- Up Down: Rotate object in the Y axies
-- Left Right: Rotate object in the Z axies
-- Z X: Rotate object in the X axies
-- 1 3: Decrease/Increase scale
+- Up Down: Rotate object in the Pitch axies
+- Left Right: Rotate object in the Yaw axies
+- Q E: Rotate object in the Roll axies
+- 1 3: Decrease/Increase zoom
 - Shift+V V: Vsync OFF/ON
 
 ---
