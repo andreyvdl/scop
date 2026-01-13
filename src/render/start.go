@@ -4,7 +4,6 @@ import (
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
-	"math"
 	. "scop/src/render/matrices"
 	. "scop/src/render/transformations"
 	. "scop/src/render/vectors"
@@ -25,6 +24,7 @@ var (
 	world_up        = Vec3{0, 1, 0}
 	world_center    = Vec3{0, 0, 0}
 	camera_location = Vec3{0, 0, 3}
+	z_vector        = Vec3{0, 0, 1}
 )
 
 func StartRendering(wf *wavefront.Wavefront) {
@@ -84,23 +84,11 @@ func StartRendering(wf *wavefront.Wavefront) {
 	gl.Enable(gl.DEPTH_TEST)
 
 	param := Parameters{
-		yaw:   0,
-		pitch: 0,
-		roll:  0,
-		zoom:  100,
-	}
-
-	cube_pos := []Vec3{
-		{0, 0, 0},
-		{2, 5, -15},
-		{-1.5, -2.2, -2.5},
-		{-3.8, -2, -12.3},
-		{2.4, -0.4, -3.5},
-		{-1.7, 3, -7.5},
-		{1.3, -2, -2.5},
-		{1.5, 2, -2.5},
-		{1.5, 0.2, -1.5},
-		{-1.3, 1, -1.5},
+		yaw:         0,
+		pitch:       0,
+		roll:        0,
+		dislocation: Vec3{0, 0, 0},
+		zoom:        100,
 	}
 
 	for !win.ShouldClose() {
@@ -114,42 +102,24 @@ func StartRendering(wf *wavefront.Wavefront) {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		x, y := win.GetSize()
-		view := LookAt(camera_location, world_center, world_up)
+
+		orientation := FromEuler(param.pitch, param.yaw, param.roll)
+		roll_q := FromAxisAngle(z_vector, float32(Deg2Rad(float64(param.roll))))
+		orientation = orientation.Mul(roll_q)
+
+		rotation_mat := FromQuaternion(orientation)
+		model := Translate(rotation_mat, param.dislocation)
+
+		view := LookAt(camera_location, model.Mul4x1(Vec4{0, 0, 0, 1}).ToVec3(), world_up)
+
+		shader.SetMatrix4f("model", model)
+
 		proj := Perspective(float32(Deg2Rad(float64(param.zoom))), float32(x)/float32(y), 0.1, 100.0)
 
 		shader.SetMatrix4f("proj", proj)
 		shader.SetMatrix4f("view", view)
 
-		pitch_sin, pitch_cos := math.Sincos(float64(param.pitch))
-		yaw_sin, yaw_cos := math.Sincos(float64(param.yaw))
-		front := Vec3{
-			float32(pitch_cos * yaw_sin),
-			float32(pitch_sin),
-			float32(pitch_cos * yaw_cos),
-		}.Normalize()
-
-		for i := range 10 {
-			right := world_up.CrossProduct(front).Normalize()
-			up := front.CrossProduct(right).Normalize()
-
-			model := Mat4{
-				right.ToVec4(0),
-				up.ToVec4(0),
-				front.ToVec4(0),
-				{0, 0, 0, 1},
-			}
-
-			model = Combine(
-				model,
-				Rotate(Identity4(), Deg2Rad(20*float64(i)), Vec3{1, 0.3, 0.5}),
-				Translate(Identity4(), cube_pos[i]),
-				Rotate(Identity4(), Deg2Rad(float64(param.roll)*40), Vec3{0, 0, 1}),
-			)
-
-			shader.SetMatrix4f("model", model)
-			gl.DrawArrays(gl.TRIANGLES, 0, 36)
-		}
-
+		gl.DrawArrays(gl.TRIANGLES, 0, 36)
 		win.SwapBuffers()
 		glfw.PollEvents()
 	}

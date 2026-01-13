@@ -1,6 +1,9 @@
 package render
 
 import (
+	"math"
+	. "scop/src/render/vectors"
+
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -10,10 +13,13 @@ func KeyboardInput(win *glfw.Window, param *Parameters, delta float64) {
 		return
 	}
 
+	delta32 := float32(delta)
+
 	checkReset(win, param)
 	checkVSync(win)
-	checkRotations(win, param, float32(delta))
-	checkZoom(win, param, float32(delta))
+	checkRotations(win, param, delta32)
+	checkDislocation(win, param, delta32)
+	checkZoom(win, param, delta32)
 }
 
 func checkReset(win *glfw.Window, param *Parameters) {
@@ -22,6 +28,7 @@ func checkReset(win *glfw.Window, param *Parameters) {
 		param.pitch = 0
 		param.roll = 0
 		param.zoom = 100
+		param.dislocation = Vec3{0, 0, 0}
 	}
 }
 
@@ -34,19 +41,13 @@ func checkVSync(win *glfw.Window) {
 }
 
 func checkRotations(win *glfw.Window, param *Parameters, delta float32) {
-	speed := 3 * delta
+	speed := 100 * delta
 
 	if win.GetKey(glfw.KeyUp) == glfw.Press {
 		param.pitch -= speed
-		if param.pitch < 0 {
-			param.pitch += 360
-		}
 	}
 	if win.GetKey(glfw.KeyDown) == glfw.Press {
 		param.pitch += speed
-		if param.pitch > 360 {
-			param.pitch -= 360
-		}
 	}
 
 	if win.GetKey(glfw.KeyLeft) == glfw.Press {
@@ -57,16 +58,39 @@ func checkRotations(win *glfw.Window, param *Parameters, delta float32) {
 	}
 
 	if win.GetKey(glfw.KeyQ) == glfw.Press {
-		param.roll += speed
-		if param.roll >= 360 {
-			param.roll -= 360
-		}
+		param.roll -= speed
 	}
 	if win.GetKey(glfw.KeyE) == glfw.Press {
-		param.roll -= speed
-		if param.roll < 0 {
-			param.roll += 360
-		}
+		param.roll += speed
+	}
+
+	param.pitch = float32(math.Mod(float64(param.pitch), 360))
+	param.yaw = float32(math.Mod(float64(param.yaw), 360))
+	param.roll = float32(math.Mod(float64(param.roll), 360))
+}
+
+func checkDislocation(win *glfw.Window, param *Parameters, delta float32) {
+	speed := 10 * delta
+
+	if win.GetKey(glfw.KeyW) == glfw.Press {
+		param.dislocation[1] += speed
+	}
+	if win.GetKey(glfw.KeyS) == glfw.Press {
+		param.dislocation[1] -= speed
+	}
+
+	if win.GetKey(glfw.KeyA) == glfw.Press {
+		param.dislocation[0] -= speed
+	}
+	if win.GetKey(glfw.KeyD) == glfw.Press {
+		param.dislocation[0] += speed
+	}
+
+	if win.GetKey(glfw.KeyN) == glfw.Press {
+		param.dislocation[2] -= speed
+	}
+	if win.GetKey(glfw.KeyM) == glfw.Press {
+		param.dislocation[2] += speed
 	}
 }
 

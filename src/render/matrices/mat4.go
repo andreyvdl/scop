@@ -303,6 +303,47 @@ func (m Mat4) ToMat3() Mat3 {
 	}
 }
 
+func FromQuaternion(q Quaternion) Mat4 {
+	id := Identity4()
+
+	q.Normalize()
+
+	xx := q[0] * q[0]
+	xy := q[0] * q[1]
+	xz := q[0] * q[2]
+	xw := q[0] * q[3]
+
+	yy := q[1] * q[1]
+	yz := q[1] * q[2]
+	yw := q[1] * q[3]
+
+	zz := q[2] * q[2]
+	zw := q[2] * q[3]
+
+	id[0] = Vec4{
+		1 - 2*(yy+zz),
+		2 * (xy + zw),
+		2 * (xz - yw),
+		0,
+	}
+
+	id[1] = Vec4{
+		2 * (xy - zw),
+		1 - 2*(xx+zz),
+		2 * (yz + xw),
+		0,
+	}
+
+	id[2] = Vec4{
+		2 * (xz + yw),
+		2 * (yz - xw),
+		1 - 2*(xx+yy),
+		0,
+	}
+
+	return id
+}
+
 func Ortho(left, right, bottom, top, z_near, z_far float32) Mat4 {
 	id := Identity4()
 
