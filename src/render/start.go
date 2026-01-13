@@ -23,7 +23,7 @@ var (
 	prev_time       = 0.0
 	world_up        = Vec3{0, 1, 0}
 	world_center    = Vec3{0, 0, 0}
-	camera_location = Vec3{0, 0, 3}
+	camera_location = Vec3{0, 0, -5}
 	z_vector        = Vec3{0, 0, 1}
 )
 
@@ -57,11 +57,13 @@ func StartRendering(wf *wavefront.Wavefront) {
 	vao := createVAO(1)
 	defer gl.DeleteVertexArrays(1, &vao)
 
-	vbo := createVBO(1, [][]float32{wf.VerticesToVBO()})
+	vertices := wf.VerticesToVBO()
+
+	vbo := createVBO(1, [][]float32{vertices})
 	defer gl.DeleteBuffers(1, &vbo)
 
-	// ebo := createEBO(1, [][]uint32{wf.FacesToEBO()})
-	// defer gl.DeleteBuffers(1, &ebo)
+	ebo := createEBO(1, [][]uint32{wf.FacesToEBO()})
+	defer gl.DeleteBuffers(1, &ebo)
 
 	shader := NewShader("src/render/vertex.vs.glsl", "src/render/fragment.fs.glsl")
 	shader.Use()
@@ -114,12 +116,12 @@ func StartRendering(wf *wavefront.Wavefront) {
 
 		shader.SetMatrix4f("model", model)
 
-		proj := Perspective(float32(Deg2Rad(float64(param.zoom))), float32(x)/float32(y), 0.1, 100.0)
+		proj := Perspective(float32(Deg2Rad(float64(param.zoom))), float32(x)/float32(y), 0.1, 1000.0)
 
 		shader.SetMatrix4f("proj", proj)
 		shader.SetMatrix4f("view", view)
 
-		gl.DrawArrays(gl.TRIANGLES, 0, 36)
+		gl.DrawElements(gl.TRIANGLES, int32(len(vertices)), gl.UNSIGNED_INT, nil)
 		win.SwapBuffers()
 		glfw.PollEvents()
 	}
