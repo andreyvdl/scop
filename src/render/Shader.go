@@ -53,9 +53,8 @@ func NewShader(vertex_path, fragment_path string) *Shader {
 		panic(fmt.Errorf("Failed to compile fragment shader '%s': %s", fragment_path, log))
 	}
 
-	s := &Shader{}
+	s := &Shader{gl.CreateProgram()}
 
-	s.Id = gl.CreateProgram()
 	gl.AttachShader(s.Id, vertex)
 	gl.AttachShader(s.Id, fragment)
 	gl.LinkProgram(s.Id)
@@ -63,7 +62,7 @@ func NewShader(vertex_path, fragment_path string) *Shader {
 	if status == gl.FALSE {
 		log := make([]byte, 1024)
 		gl.GetProgramInfoLog(s.Id, 1024, nil, &log[0])
-		panic(fmt.Errorf("Failed to link shader program '%s': %s", vertex_path, log))
+		panic(fmt.Errorf("Failed to link shader program: %s", log))
 	}
 	return s
 }
@@ -86,6 +85,10 @@ func (s *Shader) SetInt(name string, value int32) {
 
 func (s *Shader) SetFloat(name string, value float32) {
 	gl.Uniform1f(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), value)
+}
+
+func (s *Shader) Set3Float(name string, v0, v1, v2 float32) {
+	gl.Uniform3f(gl.GetUniformLocation(s.Id, gl.Str(name+"\x00")), v0, v1, v2)
 }
 
 func (s *Shader) Set4Float(name string, v0, v1, v2, v3 float32) {

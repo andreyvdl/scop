@@ -7,6 +7,8 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
+var last_call = 0.0
+
 func KeyboardInput(win *glfw.Window, param *Parameters, delta float64) {
 	if win.GetKey(glfw.KeyEscape) == glfw.Press {
 		win.SetShouldClose(true)
@@ -20,6 +22,8 @@ func KeyboardInput(win *glfw.Window, param *Parameters, delta float64) {
 	checkRotations(win, param, delta32)
 	checkDislocation(win, param, delta32)
 	checkZoom(win, param, delta32)
+	checkFPS(win, param)
+	checkTexture(win, param)
 }
 
 func checkReset(win *glfw.Window, param *Parameters) {
@@ -102,5 +106,32 @@ func checkZoom(win *glfw.Window, param *Parameters, delta float32) {
 	}
 	if win.GetKey(glfw.Key3) == glfw.Press && param.zoom < 180 {
 		param.zoom += scale
+	}
+}
+
+func checkFPS(win *glfw.Window, param *Parameters) {
+	if win.GetKey(glfw.KeyMinus) == glfw.Press {
+		param.fps -= 1
+	}
+	if win.GetKey(glfw.KeyEqual) == glfw.Press {
+		param.fps += 1
+	}
+
+	if param.fps < 30 {
+		param.fps = 30
+	} else if param.fps > 260 {
+		param.fps = 260
+	}
+}
+
+func checkTexture(win *glfw.Window, param *Parameters) {
+	if win.GetKey(glfw.KeyT) == glfw.Press {
+		if glfw.GetTime()-last_call < 0.2 { // avoid multiple calls in the same frame
+			return
+		}
+
+		param.transition_side = -param.transition_side
+
+		last_call = glfw.GetTime()
 	}
 }
