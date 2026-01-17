@@ -4,10 +4,10 @@ import (
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
-	. "scop/src/render/matrices"
-	. "scop/src/render/transformations"
+
 	. "scop/src/render/vectors"
 	"scop/src/wavefront"
+	"time"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.5-core/gl"
@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	prev_time       = 0.0
+	prev_time       = time.Now()
 	world_up        = Vec3{0, 1, 0}
 	world_center    = Vec3{0, 0, 0}
 	camera_location = Vec3{0, 0, -5}
@@ -58,7 +58,6 @@ func StartRendering(wf *wavefront.Wavefront) {
 	defer gl.DeleteVertexArrays(1, &vao)
 
 	vertices := wf.VerticesToVBO()
-
 	vbo := createVBO(1, [][]float32{vertices})
 	defer gl.DeleteBuffers(1, &vbo)
 
@@ -75,54 +74,75 @@ func StartRendering(wf *wavefront.Wavefront) {
 	img2 := loadTexture("resources/sombra.png")
 	flipVertically(img1)
 	flipVertically(img2)
-
 	createTexture(1, img1, gl.TEXTURE0)
 	createTexture(1, img2, gl.TEXTURE1)
 	shader.SetInt("tex1", 0)
 	shader.SetInt("tex2", 1)
 
 	setVertexAttributeOffset(1, 2, 6*FLOAT32_SIZE, false, uintptr(4*FLOAT32_SIZE)) // texture coordinates
-
 	gl.Enable(gl.DEPTH_TEST)
 
 	param := Parameters{
-		yaw:         0,
-		pitch:       0,
-		roll:        0,
-		dislocation: Vec3{0, 0, 0},
-		zoom:        100,
+		yaw:             0,
+		pitch:           0,
+		roll:            0,
+		dislocation:     Vec3{0, 0, 0},
+		zoom:            100,
+		fps:             60,
+		transition_side: 0.01,
+		transition:      1.0,
 	}
 
+	loop(win, shader, &param, int32(len(vertices)))
+}
+
+func loop(win *glfw.Window, shader *Shader, param *Parameters, vertices_len int32) {
 	for !win.ShouldClose() {
-		start := glfw.GetTime()
-		delta := start - prev_time
+		frame_time := time.Second / time.Duration(param.fps)
+		start := time.Now()
+		delta := start.Sub(prev_time).Seconds()
 		prev_time = start
 
-		KeyboardInput(win, &param, delta)
+		KeyboardInput(win, param, delta)
 
 		gl.ClearColor(1.0, 1.0, 1.0, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		x, y := win.GetSize()
+		shader.SetFloat("transition", param.transition)
 
-		orientation := FromEuler(param.pitch, param.yaw, param.roll)
-		roll_q := FromAxisAngle(z_vector, float32(Deg2Rad(float64(param.roll))))
-		orientation = orientation.Mul(roll_q)
+		sendTransformationDataToShader(shader, param, win)
 
-		rotation_mat := FromQuaternion(orientation)
-		model := Translate(rotation_mat, param.dislocation)
-
-		view := LookAt(camera_location, model.Mul4x1(Vec4{0, 0, 0, 1}).ToVec3(), world_up)
-
-		shader.SetMatrix4f("model", model)
-
-		proj := Perspective(float32(Deg2Rad(float64(param.zoom))), float32(x)/float32(y), 0.1, 1000.0)
-
-		shader.SetMatrix4f("proj", proj)
-		shader.SetMatrix4f("view", view)
-
-		gl.DrawElements(gl.TRIANGLES, int32(len(vertices)), gl.UNSIGNED_INT, nil)
+		gl.DrawElements(gl.TRIANGLES, vertices_len, gl.UNSIGNED_INT, nil)
 		win.SwapBuffers()
 		glfw.PollEvents()
+
+		param.transition += param.transition_side
+		if param.transition < 0.0 {
+			param.transition = 0.0
+		} else if param.transition > 1.0 {
+			param.transition = 1.0
+		}
+
+		if rest := frame_time - time.Since(start); rest > 0 {
+			time.Sleep(rest)
+		}
 	}
+}
+
+func sendTransformationDataToShader(shader *Shader, param *Parameters, win *glfw.Window) {
+	shader.SetFloat("transition", param.transition)
+
+	shader.SetFloat("pitch", param.pitch)
+	shader.SetFloat("yaw", param.yaw)
+	shader.SetFloat("roll", param.roll)
+	shader.Set3Float("z_vec", z_vector[0], z_vector[1], z_vector[2])
+
+	shader.Set3Float("dislocation", param.dislocation[0], param.dislocation[1], param.dislocation[2])
+	shader.Set3Float("camera", camera_location[0], camera_location[1], camera_location[2])
+	shader.Set3Float("world_up", world_up[0], world_up[1], world_up[2])
+
+	x, y := win.GetSize()
+	shader.SetFloat("width", float32(x))
+	shader.SetFloat("height", float32(y))
+	shader.SetFloat("zoom", param.zoom)
 }

@@ -48,10 +48,10 @@ func checkRotations(win *glfw.Window, param *Parameters, delta float32) {
 	speed := 100 * delta
 
 	if win.GetKey(glfw.KeyUp) == glfw.Press {
-		param.pitch -= speed
+		param.pitch += speed
 	}
 	if win.GetKey(glfw.KeyDown) == glfw.Press {
-		param.pitch += speed
+		param.pitch -= speed
 	}
 
 	if win.GetKey(glfw.KeyLeft) == glfw.Press {
@@ -62,10 +62,10 @@ func checkRotations(win *glfw.Window, param *Parameters, delta float32) {
 	}
 
 	if win.GetKey(glfw.KeyQ) == glfw.Press {
-		param.roll -= speed
+		param.roll += speed
 	}
 	if win.GetKey(glfw.KeyE) == glfw.Press {
-		param.roll += speed
+		param.roll -= speed
 	}
 
 	param.pitch = float32(math.Mod(float64(param.pitch), 360))
@@ -84,10 +84,10 @@ func checkDislocation(win *glfw.Window, param *Parameters, delta float32) {
 	}
 
 	if win.GetKey(glfw.KeyA) == glfw.Press {
-		param.dislocation[0] -= speed
+		param.dislocation[0] += speed
 	}
 	if win.GetKey(glfw.KeyD) == glfw.Press {
-		param.dislocation[0] += speed
+		param.dislocation[0] -= speed
 	}
 
 	if win.GetKey(glfw.KeyN) == glfw.Press {

@@ -20,3 +20,7 @@
 ## OPENGL GUIDE
 
 - https://learnopengl.com
+
+## GLSL
+
+- https://docs.vulkan.org/glsl/latest/index.html
