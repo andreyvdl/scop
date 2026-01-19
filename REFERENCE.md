@@ -24,3 +24,7 @@
 ## GLSL
 
 - https://docs.vulkan.org/glsl/latest/index.html
+
+## TEXTURE ART
+
+- https://safebooru.org/index.php?page=post&s=view&id=6353623

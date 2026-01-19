@@ -21,6 +21,8 @@ go run scop path/to/file.obj
 - W S: Move object vertically
 - N M: Move object in depth
 - Shift+V V: Vsync OFF/ON
+- T: Toggle texture ON/OFF
+- R: Reset parameters
 
 ---
 

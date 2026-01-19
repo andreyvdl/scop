@@ -4,6 +4,7 @@ import (
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
+	"math"
 
 	. "scop/src/render/vectors"
 	"scop/src/wavefront"
@@ -22,7 +23,7 @@ const (
 var (
 	prev_time       = time.Now()
 	world_up        = Vec3{0, 1, 0}
-	world_center    = Vec3{0, 0, 0}
+	object_center   = Vec3{0, 0, 0}
 	camera_location = Vec3{0, 0, -5}
 	z_vector        = Vec3{0, 0, 1}
 )
@@ -70,14 +71,10 @@ func StartRendering(wf *wavefront.Wavefront) {
 	setVertexAttibute(0, 4, 6*FLOAT32_SIZE, false, nil) // vertices
 	setTextureParameters()
 
-	img1 := loadTexture("resources/goldo_shippu.jpg")
-	img2 := loadTexture("resources/sombra.png")
+	img1 := loadTexture("resources/texture.jpg")
 	flipVertically(img1)
-	flipVertically(img2)
 	createTexture(1, img1, gl.TEXTURE0)
-	createTexture(1, img2, gl.TEXTURE1)
 	shader.SetInt("tex1", 0)
-	shader.SetInt("tex2", 1)
 
 	setVertexAttributeOffset(1, 2, 6*FLOAT32_SIZE, false, uintptr(4*FLOAT32_SIZE)) // texture coordinates
 	gl.Enable(gl.DEPTH_TEST)
@@ -92,8 +89,41 @@ func StartRendering(wf *wavefront.Wavefront) {
 		transition_side: 0.01,
 		transition:      1.0,
 	}
+	object_center = findCenter(vertices)
 
+	sendConstDataToShader(shader)
 	loop(win, shader, &param, int32(len(vertices)))
+}
+
+func findCenter(vertices []float32) Vec3 {
+	min := Vec3{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
+	max := Vec3{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
+
+	for i := 0; i < len(vertices); i += 6 {
+		x, y, z := vertices[i], vertices[i+1], vertices[i+2]
+
+		min[0] = float32(math.Min(float64(min[0]), float64(x)))
+		min[1] = float32(math.Min(float64(min[1]), float64(y)))
+		min[2] = float32(math.Min(float64(min[2]), float64(z)))
+
+		max[0] = float32(math.Max(float64(max[0]), float64(x)))
+		max[1] = float32(math.Max(float64(max[1]), float64(y)))
+		max[2] = float32(math.Max(float64(max[2]), float64(z)))
+	}
+
+	return Vec3{
+		(min[0] + max[0]) / 2,
+		(min[1] + max[1]) / 2,
+		(min[2] + max[2]) / 2,
+	}
+}
+
+func sendConstDataToShader(shader *Shader) {
+	shader.Set3Float("object_center", object_center[0], object_center[1], object_center[2])
+	shader.Set3Float("camera", camera_location[0], camera_location[1], camera_location[2])
+	shader.Set3Float("world_up", world_up[0], world_up[1], world_up[2])
+	shader.Set3Float("z_vec", z_vector[0], z_vector[1], z_vector[2])
+	shader.Set3Float("dist_to_center", object_center[0], object_center[1], object_center[2])
 }
 
 func loop(win *glfw.Window, shader *Shader, param *Parameters, vertices_len int32) {
@@ -135,11 +165,8 @@ func sendTransformationDataToShader(shader *Shader, param *Parameters, win *glfw
 	shader.SetFloat("pitch", param.pitch)
 	shader.SetFloat("yaw", param.yaw)
 	shader.SetFloat("roll", param.roll)
-	shader.Set3Float("z_vec", z_vector[0], z_vector[1], z_vector[2])
 
 	shader.Set3Float("dislocation", param.dislocation[0], param.dislocation[1], param.dislocation[2])
-	shader.Set3Float("camera", camera_location[0], camera_location[1], camera_location[2])
-	shader.Set3Float("world_up", world_up[0], world_up[1], world_up[2])
 
 	x, y := win.GetSize()
 	shader.SetFloat("width", float32(x))

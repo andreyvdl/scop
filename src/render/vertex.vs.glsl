@@ -13,6 +13,7 @@ uniform float zoom;
 uniform float width;
 uniform float height;
 
+uniform vec3 object_center;
 uniform vec3 z_vec;
 uniform vec3 dislocation;
 uniform vec3 camera;
@@ -123,6 +124,7 @@ mat4 perspective(float fov_y, float aspect, float z_near, float z_far) {
 }
 
 void main() {
+    vec4 new_position = aPos - vec4(object_center, 0.0);
     vec4 orientation = quaternionFromEuler(pitch, yaw, roll);
     mat4 m = translate(dislocation) * quaternionToMatrix(orientation);
 
@@ -131,6 +133,6 @@ void main() {
 
     mat4 p = perspective(radians(zoom), width / height, 0.1, 1000.0);
 
-    gl_Position = p * v * m * aPos;
+    gl_Position = p * v * m * new_position;
     texCoord = vec2(aTex.x, aTex.y);
 }
