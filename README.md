@@ -2,6 +2,11 @@
 
 > Your introduction to 3D rendering on the GPU using OpenGL, Vulkan, or Metal. Through this small graphical project, you'll explore the core concepts of modern 3D graphics.
 
+## Requirements
+
+- OpenGL 4.5+
+- Golang 1.25+
+
 # Usage
 
 ```
