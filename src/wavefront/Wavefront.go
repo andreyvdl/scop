@@ -7,6 +7,7 @@ import (
 	"os"
 	fp "path/filepath"
 	"scop/src"
+	. "scop/src/render/vectors"
 	mtlib "scop/src/wavefront/material_template_library"
 	"strings"
 )
@@ -260,20 +261,32 @@ func Tokens2FaceSlices(tokens []string) (vertice int, texture int, normal int) {
 }
 
 func (wf *Wavefront) VerticesToVBO() []float32 {
-	var vertices []float32
+	var positions []float32
 
-	for i, ver := range wf.Vertices {
-		vertices = append(vertices, ver.X, ver.Y, ver.Z, ver.W)
-		switch i % 4 {
-		case 0:
-			vertices = append(vertices, 1.0, 0.0)
-		case 1:
-			vertices = append(vertices, 1.0, 1.0)
-		case 2:
-			vertices = append(vertices, 0.0, 1.0)
-		case 3:
-			vertices = append(vertices, 0.0, 0.0)
-		}
+	for _, v := range wf.Vertices {
+		positions = append(positions, v.X, v.Y, v.Z, v.W)
+	}
+
+	min, max := computeBounds(wf.Vertices)
+	width := max[0] - min[0]
+	height := max[1] - min[1]
+	depth := max[2] - min[2]
+	if width == 0 {
+		width = 1.0
+	}
+	if height == 0 {
+		height = 1.0
+	}
+	if depth == 0 {
+		depth = 1.0
+	}
+
+	var vertices []float32
+	for i := 0; i < len(positions); i += 4 {
+		x, y, z, w := positions[i], positions[i+1], positions[i+2], positions[i+3]
+		u := (z - min[2]) / depth * 4
+		v := (y - min[1]) / height * 3
+		vertices = append(vertices, x, y, z, w, u, v)
 	}
 
 	return vertices
@@ -294,4 +307,21 @@ func (wf *Wavefront) FacesToEBO() []uint32 {
 	}
 
 	return indices
+}
+
+func computeBounds(vertices []*Vertex) (min Vec3, max Vec3) {
+	min = Vec3{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
+	max = Vec3{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
+
+	for _, v := range vertices {
+		min[0] = float32(math.Min(float64(min[0]), float64(v.X)))
+		min[1] = float32(math.Min(float64(min[1]), float64(v.Y)))
+		min[2] = float32(math.Min(float64(min[2]), float64(v.Z)))
+
+		max[0] = float32(math.Max(float64(max[0]), float64(v.X)))
+		max[1] = float32(math.Max(float64(max[1]), float64(v.Y)))
+		max[2] = float32(math.Max(float64(max[2]), float64(v.Z)))
+	}
+
+	return min, max
 }

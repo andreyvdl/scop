@@ -73,7 +73,8 @@ func StartRendering(wf *wavefront.Wavefront) {
 
 	img1 := loadTexture("resources/texture.jpg")
 	flipVertically(img1)
-	createTexture(1, img1, gl.TEXTURE0)
+	tex := createTexture(1, img1, gl.TEXTURE0)
+	defer gl.DeleteTextures(1, &tex)
 	shader.SetInt("tex1", 0)
 
 	setVertexAttributeOffset(1, 2, 6*FLOAT32_SIZE, false, uintptr(4*FLOAT32_SIZE)) // texture coordinates

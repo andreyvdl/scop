@@ -23,6 +23,7 @@ go run scop path/to/file.obj
 - Shift+V V: Vsync OFF/ON
 - T: Toggle texture ON/OFF
 - R: Reset parameters
+- = -: Increase/Decrease FPS (limit between 30 and 120)
 
 ---
 

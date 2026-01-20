@@ -1,4 +1,5 @@
 #version 450 core
+#pragma optimize(on)
 
 #define PINK vec4(1.0, 0.0, 1.0, 1.0)
 #define BLACK vec4(0.0, 0.0, 0.0, 1.0)
@@ -9,24 +10,23 @@ in vec2 texCoord;
 
 uniform float transition = 0;
 uniform sampler2D tex1;
-uniform sampler2D tex2;
 
-vec4 selectCoord(vec2 coord) {
-    vec4 color;
-
-    if (coord.x > 0.5 && coord.y > 0.5) {
-        color = PINK;
+vec4 getFaceColor() {
+    switch (gl_PrimitiveID % 4) {
+        case 0:
+        return PINK;
+        case 1:
+        return BLACK;
+        case 2:
+        return mix(PINK, BLACK, 0.3);
+        case 3:
+        return mix(PINK, BLACK, 0.7);
     }
-    else if (coord.x < 0.5 && coord.y < 0.5) {
-        color = BLACK;
-    }
-    else {
-        color = mix(PINK, BLACK, 0.5);
-    }
-
-    return color;
 }
 
 void main() {
-    FragColor = mix(texture(tex1, texCoord), selectCoord(texCoord), transition);
+    vec4 tex_color = texture(tex1, texCoord);
+    vec4 face_color = getFaceColor();
+
+    FragColor = mix(tex_color, face_color, transition);
 }
