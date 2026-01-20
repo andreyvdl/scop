@@ -11,9 +11,9 @@
 
 ```
 go build
-./scop path/to/file.obj
+./scop resources/file.obj
 # or
-go run scop path/to/file.obj
+go run scop resources/file.obj
 ```
 
 # Controls
