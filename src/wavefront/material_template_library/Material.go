@@ -73,5 +73,5 @@ type Material struct {
 }
 
 func NewMaterial(name string) *Material {
-	return &Material{Name: name}
+	return &Material{Name: name, Refraction_coefficient: NewNi(1.0)}
 }
