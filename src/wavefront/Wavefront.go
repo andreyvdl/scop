@@ -284,8 +284,8 @@ func (wf *Wavefront) VerticesToVBO() []float32 {
 	var vertices []float32
 	for i := 0; i < len(positions); i += 4 {
 		x, y, z, w := positions[i], positions[i+1], positions[i+2], positions[i+3]
-		u := (z - min[2]) / depth * 4
-		v := (y - min[1]) / height * 3
+		u := (z - min[2]) / depth * 3
+		v := (y - min[1]) / height * 2
 		vertices = append(vertices, x, y, z, w, u, v)
 	}
 
