@@ -2,6 +2,8 @@
 
 > Your introduction to 3D rendering on the GPU using OpenGL, Vulkan, or Metal. Through this small graphical project, you'll explore the core concepts of modern 3D graphics.
 
+[demo](https://youtu.be/wfv0nKFgBXY)
+
 ## Requirements
 
 - OpenGL 4.5+
